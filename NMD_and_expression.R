@@ -1,0 +1,82 @@
+# to investigate expression levels of genes previously described as NMD targets
+# in Kurosaki et al. NSMB 2018
+
+library("dplyr")
+library("stringr") # for str_split_fixed
+library("ggplot2")
+
+#INPUTS ####
+exp <- read.table("../1_NMD_inhibitor_RNA-seq/CC115/Akata_1uM/2_DESeq/Test.deseq2.results.txt", header=TRUE, sep="\t")
+nmd_genes <- read.table("reference_files/NMD_targets_from_Kurosaki_NSMB_2018_41594_2018_132_MOESM3_ESM_pantherGeneList.txt",
+                        header = FALSE, sep = "\t")
+set_tpm <- 10
+
+#ANALYSIS ####
+#remove EBV genes:
+ann <- read.table("/Applications/Genomics_applications/Genomes_and_transcriptomes/hg38_plus_Akata_inverted.bed.converted.bed")
+ebv_ann <- ann %>%
+  filter(V1 == "chrEBV_Akata_inverted")
+ebv_ann[13:16] <- str_split_fixed(ebv_ann$V4, "_", 4)
+ebv_genes <- unique(ebv_ann$V15)
+
+exp <- exp %>%
+  filter(!gene %in% ebv_genes)
+#57152
+
+# identify NMD-targeted genes in DE file
+exp_nmd_genes <- exp %>%
+  mutate(NMD = ifelse(gene %in% nmd_genes$V2, "yes", "no"))
+
+# first plot ####
+ggplot(exp_nmd_genes, aes(x = log2FC, colour = NMD)) +
+  stat_ecdf() +
+  xlim(-7.5, 7.5)
+
+#expression filter: UPDATE WITH COLUMN NAMES  ####
+exp_tpm <- exp_nmd_genes %>%
+  filter(A0A..TPMs. > set_tpm) %>%
+  filter(A0B..TPMs. > set_tpm) %>%
+  filter(A0C..TPMs. > set_tpm)
+
+#pdf("2022-12-09_NMD_log2FC_Akata_CC115_1uM_ks_tpm10_reference.pdf", width = 2.5, height = 3.5)
+ggplot(exp_tpm, aes(x = log2FC, colour = NMD)) +
+  stat_ecdf() +
+  scale_colour_manual(values = c("darkgrey", "#fbb4ae"),
+                      labels = c("no NMD", "NMD")) +
+  #geom_vline(xintercept = 0, colour = "grey") +
+  xlim(-2,2) +
+  theme_classic() + theme(legend.position = "bottom") +
+  theme(axis.title.y = element_blank(),
+        legend.title = element_blank(),
+        axis.line = element_blank(),
+        panel.border = element_rect(colour = "black",
+                                    fill = NA,
+                                    size = 0.5))
+#dev.off()
+
+#pdf("2022-12-16_NMD_log2FC_Akata_CC115_1uM_ks_tpm10.pdf", width = 2, height = 2.5)
+ggplot(exp_tpm, aes(x = log2FC, colour = NMD)) +
+  stat_ecdf(size=1.5) +
+  scale_colour_manual(values = c("darkgrey", "#a6cee3"),
+                      labels = c("no NMD-AS", "NMD-AS")) +
+  xlim(-2,2) +
+  theme_classic() + 
+  guides(colour = "none") +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        #legend.title = element_blank(),
+        axis.line = element_blank(),
+        panel.border = element_rect(colour = "black",
+                                    fill = NA,
+                                    size = 0.5))
+#dev.off()
+
+#STATS ####
+nmd_fc <- exp_tpm %>%
+  filter(NMD == "yes") %>%
+  pull(log2FC)
+no_nmd_fc <- exp_tpm %>%
+  filter(NMD == "no") %>%
+  pull(log2FC)
+
+ks.test(nmd_fc, no_nmd_fc)
