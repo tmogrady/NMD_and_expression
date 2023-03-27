@@ -13,7 +13,7 @@ set_tpm <- 10
 
 #ANALYSIS ####
 #remove EBV genes:
-ann <- read.table("/Applications/Genomics_applications/Genomes_and_transcriptomes/hg38_plus_Akata_inverted.bed.converted.bed")
+ann <- read.table("reference_files/hg38_plus_Akata_inverted.bed.converted.bed")
 ebv_ann <- ann %>%
   filter(V1 == "chrEBV_Akata_inverted")
 ebv_ann[13:16] <- str_split_fixed(ebv_ann$V4, "_", 4)
