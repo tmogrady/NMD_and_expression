@@ -46,5 +46,18 @@ ds2_nmd_neg_ild_slim <- ds2_nmd_neg_ild %>%
   group_by(chr, strand, SE_donor, SE_acceptor) %>%
   summarise(ILD = min(IncLevelDifference))
 
+# PLOT ####
+ds1_nmd_neg_ild_slim$dataset = "ds1"
+ds2_nmd_neg_ild_slim$dataset = "ds2"
+toplot <- rbind(ds1_nmd_neg_ild_slim, ds2_nmd_neg_ild_slim)
 
+ggplot(toplot, aes(x = dataset, y = ILD)) +
+  geom_violin() +
+  geom_boxplot(width = 0.1, fill = "black", outlier.colour = NA) +
+  stat_summary(fun = median, geom = "point", fill = "white", 
+               shape = 21, size = 2.5) +
+  ylab("IncLevelDifference") +
+  ggtitle("IncLevelDifference of NMD-targeting SE") +
+  theme_classic() +
+  theme(axis.title.x = element_blank())
 
